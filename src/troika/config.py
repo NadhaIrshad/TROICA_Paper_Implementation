@@ -13,7 +13,7 @@ import dataclasses
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping, get_type_hints
 
 import yaml
 
@@ -374,15 +374,35 @@ class Config:
                 Config._validate_plain_section(f"{section}.{key}", base.get(key), sub)
 
 
+def _is_scalar_type(expected: Any) -> bool:
+    """True when ``expected`` is one of the scalar types validation understands."""
+    return expected in (int, float, bool, str, list, tuple, dict)
+
+
 def _params_defaults(params_cls: type) -> dict[str, Any]:
     """Default ``params`` mapping of a plug-in's ``Params`` dataclass."""
     out = dataclasses.asdict(params_cls())
     return {k: (list(v) if isinstance(v, tuple) else v) for k, v in out.items()}
 
 
+def _resolved_field_types(params_cls: type) -> dict[str, Any]:
+    """Field name to actual type object for a ``Params`` dataclass.
+
+    ``from __future__ import annotations`` leaves ``dataclasses.Field.type`` as a
+    string, so comparing it to ``int`` would silently never match and every type
+    check would pass. ``get_type_hints`` turns it back into the real object.
+    """
+    try:
+        hints = get_type_hints(params_cls)
+    except Exception:  # an annotation naming something not importable here
+        hints = {}
+    return {f.name: hints.get(f.name, f.type) for f in dataclasses.fields(params_cls)}
+
+
 def _build_params(slot: str, method: str, params_cls: type, raw: Mapping[str, Any]) -> Any:
     """Validate a raw ``params`` mapping and build the plug-in's ``Params``."""
     fields = {f.name: f for f in dataclasses.fields(params_cls)}
+    types = _resolved_field_types(params_cls)
     unknown = set(raw) - set(fields)
     if unknown:
         raise ConfigError(
@@ -391,7 +411,7 @@ def _build_params(slot: str, method: str, params_cls: type, raw: Mapping[str, An
         )
     kwargs: dict[str, Any] = {}
     for name, value in raw.items():
-        expected = fields[name].type
+        expected = types[name]
         if isinstance(value, Mapping):
             kwargs[name] = dict(value)
             continue
