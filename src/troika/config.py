@@ -25,6 +25,7 @@ __all__ = [
     "load_config",
     "default_config_path",
     "repo_root",
+    "resolve_path",
 ]
 
 
@@ -42,8 +43,22 @@ def default_config_path() -> Path:
     return repo_root() / "configs" / "default.yaml"
 
 
+def resolve_path(path: str | Path) -> Path:
+    """Resolve a path, falling back to one relative to the repository root.
+
+    Notebooks run with their own directory as the working directory, so
+    ``configs/default.yaml`` would not be found from ``notebooks/``. Trying the
+    repository root as well lets the same string work from anywhere.
+    """
+    candidate = Path(path)
+    if candidate.exists() or candidate.is_absolute():
+        return candidate
+    from_root = repo_root() / candidate
+    return from_root if from_root.exists() else candidate
+
+
 def _read_yaml(path: str | Path) -> dict[str, Any]:
-    text = Path(path).read_text(encoding="utf-8")
+    text = resolve_path(path).read_text(encoding="utf-8")
     data = yaml.safe_load(text)
     if data is None:
         return {}

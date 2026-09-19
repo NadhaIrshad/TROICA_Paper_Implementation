@@ -17,7 +17,8 @@ from typing import Any, Callable, Iterable, Mapping, Sequence
 import numpy as np
 import pandas as pd
 
-from troika.config import Config, load_config as _load_config
+from troika import registry
+from troika.config import Config, load_config as _load_config, resolve_path
 from troika.evaluation import metrics
 from troika.io import loader
 from troika.pipeline import TroikaEstimator
@@ -121,6 +122,23 @@ def run_all(
         raise KeyError(f"no recording loaded for subject(s) {missing}")
 
     jobs = int(cfg.run.n_jobs if n_jobs is None else n_jobs)
+
+    # A plug-in defined in a notebook cell cannot be imported by a worker
+    # process, so such a run stays here rather than failing in the workers.
+    notebook_defined = [
+        f"{slot}/{cfg.slot_method(slot)}"
+        for slot in registry.SLOTS
+        if not registry.is_builtin(slot, cfg.slot_method(slot))
+    ]
+    if jobs > 1 and notebook_defined:
+        print(
+            f"running on one core: {', '.join(notebook_defined)} "
+            f"{'is' if len(notebook_defined) == 1 else 'are'} defined outside the "
+            f"package and cannot be sent to worker processes. Move it to a file "
+            f"with `python -m troika.plugins.new` to run in parallel."
+        )
+        jobs = 1
+
     if jobs > 1 and len(chosen) > 1:
         from joblib import Parallel, delayed
 

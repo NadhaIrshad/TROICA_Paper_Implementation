@@ -171,6 +171,30 @@ account, not a demonstrated one.
 
 ---
 
+## Sensitivity to parameter values
+
+Paper Fig. 10 varies L, Delta, tau and Delta_s one at a time on subject 5 and
+claims the average absolute error barely moves. It does not move here either:
+
+| Parameter | Values tried | Error1 range (BPM) |
+|---|---|---|
+| L | 100, 200, 300, 400 | 0.87 to 0.98 |
+| Delta | 5, 10, 12, 15 | 0.85 to 0.88 |
+| tau | 0, 1, 2, 3, 4 | 0.87 to 0.87 |
+| Delta_s | 12, 14, 16, 20 | 0.87 to 0.93 |
+
+Across all eighteen settings the error spans 0.85 to 0.98 BPM, a spread of 0.12.
+The paper's bar chart spans 0 to 2.5 BPM with every bar near 2; ours sit near
+0.9, so this implementation is both flatter and lower on this subject. The claim
+reproduces.
+
+Worth keeping in proportion: these four parameters are the ones the paper chose
+to test, and they are exactly the ones that do not matter much. The parameters
+that decide whether a subject works at all are the ones the paper does not
+discuss, A5, A6, A20 and A21, each of which moves the mean by 5 to 30 BPM.
+
+---
+
 ## What is not reproduced, and why it is hard to
 
 **The exact numbers.** The paper's parameters were, in its own words, "assigned

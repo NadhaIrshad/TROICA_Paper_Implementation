@@ -17,6 +17,7 @@ __all__ = [
     "register_function",
     "get",
     "available",
+    "is_builtin",
     "params_class",
     "clear",
 ]
@@ -54,6 +55,11 @@ def register(slot: str, name: str, *, override: bool = False) -> Callable[[type]
             )
         cls._slot = slot  # type: ignore[attr-defined]
         cls._name = name  # type: ignore[attr-defined]
+        # A plug-in defined in a notebook cell cannot be imported by a fresh
+        # worker process, so the parallel path has to know the difference.
+        cls._builtin = str(getattr(cls, "__module__", "")).startswith(  # type: ignore[attr-defined]
+            "troika.plugins."
+        )
         _REGISTRY[slot][name] = cls
         return cls
 
@@ -110,6 +116,15 @@ def register_function(
         return fn
 
     return _decorator
+
+
+def is_builtin(slot: str, name: str) -> bool:
+    """True when this plug-in lives in a module a fresh process could import.
+
+    A plug-in registered from a notebook cell is not importable elsewhere, so
+    runs using it must stay in this process.
+    """
+    return bool(getattr(get(slot, name), "_builtin", False))
 
 
 def get(slot: str, name: str) -> type:

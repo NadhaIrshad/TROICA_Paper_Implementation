@@ -152,7 +152,11 @@ class TroikaEstimator:
             if w >= total:
                 break
             t_start_s = start / self.fs
-            gt = self._ground_truth_for(rec, w) if allow_gt else None
+            # The trace and the plots may see the truth; plug-ins may not
+            # (Lab Spec Section 2.4). `gt` goes into the trace, `ctx_gt` into
+            # the WindowContext the plug-ins receive.
+            gt = self._ground_truth_for(rec, w)
+            ctx_gt = gt if allow_gt else None
 
             timings: dict[str, float] = {}
             stage_signals: dict[str, NDArray[np.float64]] = {}
@@ -160,7 +164,7 @@ class TroikaEstimator:
             is_full = level == "full" or (level != "none" and w in wanted_full)
 
             # --- band-pass -------------------------------------------------
-            ctx = WindowContext(idx=w, t_start_s=t_start_s, gt_bpm=gt)
+            ctx = WindowContext(idx=w, t_start_s=t_start_s, gt_bpm=ctx_gt)
             raw_ppg = rec.ppg[start:stop]
             raw_acc = rec.acc[:, start:stop]
             stacked = np.vstack([raw_ppg[None, :], raw_acc])
@@ -201,7 +205,7 @@ class TroikaEstimator:
                 acc_bins=refined,
                 prev_bin=prev_bin,
                 bpm_history=list(getattr(tracker, "bpm_history", [])),
-                gt_bpm=gt,
+                gt_bpm=ctx_gt,
             )
 
             # --- decomposition, difference, spectrum -----------------------
