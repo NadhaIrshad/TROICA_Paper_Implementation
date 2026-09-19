@@ -1,0 +1,30 @@
+# data (never commit raw recordings)
+datasets/
+data/
+*.mat
+
+# results and caches
+results/
+.cache/
+*.html
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ipynb_checkpoints/
+notebooks/*.ipynb
+
+# environments
+.venv/
+venv/
+env/
+
+# editors / os
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

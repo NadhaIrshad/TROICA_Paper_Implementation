@@ -1,0 +1,6 @@
+# Ablation, Table I/II row 2: "FOCUSS + Vrf", the signal decomposition removed.
+# [ASSUMPTION A18] the temporal difference stays on in every ablation.
+run:
+  name: ablation_no_ssa
+decomposition:
+  method: none

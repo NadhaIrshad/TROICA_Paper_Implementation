@@ -1,0 +1,5 @@
+# Ablation, Table I/II row 3: "SSA + FFT + Vrf", SSR replaced by the Periodogram.
+run:
+  name: ablation_fft
+spectrum_estimator:
+  method: fft

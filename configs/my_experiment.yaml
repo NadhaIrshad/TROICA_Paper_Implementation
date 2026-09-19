@@ -1,0 +1,98 @@
+# =============================================================================
+# my_experiment.yaml  -  your editable experiment configuration (slot layout)
+#
+# Usage:
+#   python experiments/run_all.py --config configs/my_experiment.yaml [--subjects 5 6]
+#   or in a notebook:  cfg = lab.load_config("configs/my_experiment.yaml")
+#
+# How it works:
+#   - configs/default.yaml holds the paper's values and is NEVER edited.
+#   - This file is merged on top of default.yaml. Delete any line you do not
+#     want to change; it falls back to the default.
+#   - Each swappable stage has  method  (which plug-in) and  params  (its settings).
+#     Changing `method` resets that stage's params to the new plug-in's defaults.
+#   - Unknown keys raise an error (protects against typos).
+#   - CLI one-offs:  --set bandpass.method=fir --set decomposition.L=300
+#   - lab.promote(cfg, "configs/my_experiment.yaml") writes a variant you found
+#     in a notebook into this file.
+#
+# Tags:  [PAPER] = value stated in the paper.
+#        [ASSUMPTION Ax] = my choice where the paper is silent (Blueprint Sec. 11).
+# =============================================================================
+
+run:
+  name: my_experiment            # results go to results/<name>_<timestamp>/
+  subjects: all                  # all | [1, 5, 6]
+  n_jobs: 4                      # parallel across subjects (windows stay sequential)
+  allow_ground_truth_access: false   # keep false for any reported result
+  trace: {level: none}           # none | light  (light = needed for whole-recording plots)
+
+signal:
+  fs: 125                        # [PAPER] Hz
+  window_s: 8                    # [PAPER] T
+  step_s: 2                      # [PAPER] S
+  ppg_channel: 0                 # [A15]
+
+grid:
+  n_fft: 4096                    # [PAPER] N, shared FFT / SSR frequency grid (scale if fs changes)
+
+bandpass:
+  method: butter                 # butter | fir      [A1]
+  params:
+    low_hz: 0.4                  # [PAPER]
+    high_hz: 5.0                 # [PAPER]
+    order: 4                     # [A1]
+    mode: per_window             # [A2] per_window | global
+
+acc_dominant:                    # helper that feeds the decomposition stage
+  rel_threshold: 0.5             # [PAPER] keep acc peaks > 50 % of axis max
+  exclude_delta_bins: 10         # [PAPER] Delta (about 0.3 Hz at N=4096, fs=125)
+  n_harmonics: 2                 # [A6] 1 = fundamental only, 2 = + first harmonic
+
+decomposition:
+  method: ssa                    # ssa | none  (none = ablation "without SSA")
+  params:
+    L: 400                       # [PAPER]
+    grouping: frequency_pairing  # [A4] frequency_pairing | wcorr_hclust | singleton
+    sv_rel_tol: 0.1              # [A4]
+    freq_tol_bins: 2             # [A4]
+    match_tol_bins: 2            # [A5]
+
+temporal_diff:
+  method: diff                   # diff | none
+  params:
+    order: 2                     # [PAPER]
+    normalize_after: true        # [A3] z-score before the spectrum estimator
+
+spectrum_estimator:
+  method: focuss                 # focuss | fft  (fft = ablation "FFT instead of SSR")
+  params:
+    p: 0.8                       # [PAPER]
+    lam: 0.1                     # [PAPER]
+    n_iter: 5                    # [PAPER]
+    x0: ones                     # [A11] ones | matched_filter
+    prune_columns: true          # [PAPER Eq. 12]
+
+tracker:
+  method: troika
+  params:
+    init_mode: max_peak          # max_peak | ground_truth (debug; marks the run CONTAMINATED)
+    init_band_bpm: [40, 200]     # [A10]
+    delta_s: 16                  # [PAPER]
+    delta_s_wide: 20             # [PAPER]
+    max_peaks_per_range: 3       # [PAPER]
+    eta_frac: 0.30               # [PAPER]
+    harm_tol_bins: 2             # [A7]
+    verification:
+      enabled: true              # false = ablation "without verification"
+      theta_bins: 6              # [PAPER]
+      tau_bins: 2                # [PAPER]
+      stall_windows_h: 3         # [PAPER]
+      trend_history_windows: 20  # [PAPER]
+      trend_poly_order: 3        # [PAPER]
+      trend_threshold_bpm: 3     # [PAPER]
+
+evaluation:
+  std_ddof: 1                    # sample std, matches the paper's 2.34 +/- 0.82
+  compare_with_paper: true       # add paper columns and deltas to the stats table
+  within_bpm: 5                  # for the "% of windows within X BPM" column
