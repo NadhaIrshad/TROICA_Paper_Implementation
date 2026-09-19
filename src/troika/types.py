@@ -164,3 +164,10 @@ class WindowContext:
     prev_bin: int | None = None
     bpm_history: list[float] = field(default_factory=list)
     gt_bpm: float | None = None
+    init_spectrum: NDArray[np.float64] | None = None
+    """Spectrum the tracker should initialise from, set only for window 0.
+
+    DEVIATION D6. The tracker otherwise sees the spectrum estimator's output,
+    which sits after the second-order difference and is therefore biased towards
+    high frequencies; see ASSUMPTION A20 in docs/assumption_log.md.
+    """

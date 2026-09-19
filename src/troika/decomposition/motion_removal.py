@@ -36,6 +36,7 @@ def acc_dominant_bins(
     restrict_to_band: bool = True,
     f_lo: float = 0.4,
     f_hi: float = 5.0,
+    threshold_domain: str = "power",
 ) -> set[int]:
     """``F_acc``: dominant bins of the three acceleration axes (paper Section III-A).
 
@@ -43,6 +44,8 @@ def acc_dominant_bins(
     maximum amplitude in a given spectrum"), and the results are unioned.
     ``restrict_to_band`` is ASSUMPTION A19; the signal is band-passed anyway, so
     restricting mainly guards against out-of-band leakage dominating an axis.
+    ``threshold_domain`` is ASSUMPTION A21, whether the paper's 50 % is of
+    amplitude or of periodogram power.
     """
     acc_win = np.atleast_2d(np.asarray(acc_win, dtype=np.float64))
     if restrict_to_band:  # ASSUMPTION A19
@@ -53,7 +56,9 @@ def acc_dominant_bins(
     out: set[int] = set()
     for axis in acc_win:
         spec = periodogram(axis, n_fft)
-        out.update(int(b) for b in dominant_bins(spec, lo, hi, rel_threshold))
+        out.update(
+            int(b) for b in dominant_bins(spec, lo, hi, rel_threshold, threshold_domain)
+        )
     return out
 
 

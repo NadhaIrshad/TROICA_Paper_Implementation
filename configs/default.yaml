@@ -49,8 +49,12 @@ bandpass:
 acc_dominant:                   # helper feeding WindowContext, not a slot
   rel_threshold: 0.5            # [PAPER] keep acc peaks > 50 % of that axis's max
   exclude_delta_bins: 10        # [PAPER] Delta, about 0.3 Hz at N=4096, fs=125
-  n_harmonics: 2                # [ASSUMPTION A6] 1 = fundamental only, 2 = + 1st harmonic
+  n_harmonics: 1                # [ASSUMPTION A6] 1 = fundamental only, 2 = + 1st harmonic
+                                # tuned: 2 protects the cadence once the estimate
+                                # locks onto it, which loses subject 6 entirely
   restrict_to_band: true        # [ASSUMPTION A19] limit the peak search to 0.4-5 Hz
+  threshold_domain: power        # [ASSUMPTION A21] amplitude | power; the paper says
+                                # "amplitude", but a periodogram holds power
 
 decomposition:
   method: ssa                   # ssa | none  (none = ablation "without SSA")
@@ -59,7 +63,7 @@ decomposition:
     grouping: frequency_pairing # [ASSUMPTION A4] frequency_pairing | wcorr_hclust | singleton
     sv_rel_tol: 0.1             # [ASSUMPTION A4]
     freq_tol_bins: 2            # [ASSUMPTION A4]
-    match_tol_bins: 2           # [ASSUMPTION A5]
+    match_tol_bins: 0           # [ASSUMPTION A5] tuned; exact bin matching measured best
     n_groups_max: 0             # [ASSUMPTION A4] wcorr_hclust cluster count; 0 = auto
 
 temporal_diff:
@@ -83,6 +87,7 @@ tracker:
   method: troika
   params:
     init_mode: max_peak         # max_peak | ground_truth (debug; marks run CONTAMINATED)
+    init_spectrum: decomposition  # [ASSUMPTION A20] decomposition | bandpass | estimator
     init_band_bpm: [40, 200]    # [ASSUMPTION A10]
     delta_s: 16                 # [PAPER]
     delta_s_wide: 20            # [PAPER]

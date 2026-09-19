@@ -33,6 +33,7 @@ class TroikaTrackerParams:
     """Options of the spectral peak tracker."""
 
     init_mode: str = "max_peak"  # max_peak | ground_truth (debug; marks CONTAMINATED)
+    init_spectrum: str = "decomposition"  # ASSUMPTION A20: decomposition | bandpass | estimator
     init_band_bpm: list = field(default_factory=lambda: [40, 200])  # ASSUMPTION A10
     delta_s: int = 16  # PAPER
     delta_s_wide: int = 20  # PAPER
@@ -44,6 +45,11 @@ class TroikaTrackerParams:
     verification: dict = field(default_factory=_default_verification)
 
     def __post_init__(self) -> None:
+        if self.init_spectrum not in ("decomposition", "bandpass", "estimator"):
+            raise ValueError(
+                f"init_spectrum must be 'decomposition', 'bandpass' or 'estimator', "
+                f"got {self.init_spectrum!r}"
+            )
         if self.init_mode not in ("max_peak", "ground_truth"):
             raise ValueError(
                 f"init_mode must be 'max_peak' or 'ground_truth', got {self.init_mode!r}"
@@ -129,8 +135,16 @@ class TroikaTracker(Tracker):
         return StageOutput(data=result, diag=dict(info))
 
     def initialize(self, spectrum: NDArray[np.float64], ctx: WindowContext) -> StageOutput:
-        """Handle the first window (paper Section III-D.1)."""
-        k_cur, info = self._tracker.initialize(spectrum, gt_bpm=ctx.gt_bpm)
+        """Handle the first window (paper Section III-D.1).
+
+        ASSUMPTION A20: unless ``init_spectrum`` is ``estimator``, the pipeline
+        supplies a pre-difference PPG spectrum through ``ctx.init_spectrum`` and
+        that is what the highest peak is taken from.
+        """
+        source = spectrum
+        if self.params.init_spectrum != "estimator" and ctx.init_spectrum is not None:
+            source = ctx.init_spectrum
+        k_cur, info = self._tracker.initialize(source, gt_bpm=ctx.gt_bpm)
         return self._output(k_cur, info)
 
     def step(self, spectrum: NDArray[np.float64], ctx: WindowContext) -> StageOutput:

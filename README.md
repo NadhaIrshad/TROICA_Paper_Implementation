@@ -84,6 +84,31 @@ viz.plot_pipeline_overview(trace)
 `DEVIATIONS.md` lists everything this implementation does that the two
 specifications do not state. `CLAUDE.md` holds the coding conventions.
 
+## Results
+
+Eleven of the twelve subjects reproduce the paper, nine of them better than its
+per-subject value; subject 10 fails outright and dominates every aggregate.
+
+| | This implementation | Paper |
+|---|---|---|
+| Error1, 11 subjects (excluding subject 10) | 2.16 +/- 2.02 BPM | 2.34 +/- 0.82 BPM |
+| Error1, all 12 subjects | 8.25 BPM | 2.34 BPM |
+| Pearson r, pooled over 11 subjects | 0.976 | 0.992 |
+
+`docs/results.md` has the per-subject table, the ablations, why subject 10
+fails, and the two ambiguities in the paper that had to be resolved before any
+of it worked. `docs/assumption_log.md` has the measurements behind every
+assumption choice.
+
 ## Milestones
 
 - [x] **M0** scaffold: config with the slot layout, types, bin mapping, plug-in registry
+- [x] **M1** loader, ground truth, windowing, metrics, reporting
+- [x] **M2** band-pass, periodogram and peaks, temporal difference
+- [x] **M3** singular spectrum analysis with three grouping strategies
+- [x] **M4** motion-artifact identification and removal
+- [x] **M5** pruned dictionary and FOCUSS sparse reconstruction
+- [x] **M6** peak selection, verification, stateful tracker
+- [x] **M7** pipeline, tracing, leak guard, lab API (also L0 to L2)
+- [x] **M8** experiments, assumption sweep, ablations (also L3 to L7)
+- [x] **M9** write-up in `docs/results.md`

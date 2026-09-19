@@ -47,7 +47,9 @@ bandpass:
 acc_dominant:                    # helper that feeds the decomposition stage
   rel_threshold: 0.5             # [PAPER] keep acc peaks > 50 % of axis max
   exclude_delta_bins: 10         # [PAPER] Delta (about 0.3 Hz at N=4096, fs=125)
-  n_harmonics: 2                 # [A6] 1 = fundamental only, 2 = + first harmonic
+  n_harmonics: 1                 # [A6] 1 = fundamental only, 2 = + first harmonic
+  threshold_domain: power         # [A21] amplitude | power (paper says amplitude;
+                                 # a periodogram holds power, so this matters)
 
 decomposition:
   method: ssa                    # ssa | none  (none = ablation "without SSA")
@@ -56,7 +58,7 @@ decomposition:
     grouping: frequency_pairing  # [A4] frequency_pairing | wcorr_hclust | singleton
     sv_rel_tol: 0.1              # [A4]
     freq_tol_bins: 2             # [A4]
-    match_tol_bins: 2            # [A5]
+    match_tol_bins: 0            # [A5] 0 = exact bin match
 
 temporal_diff:
   method: diff                   # diff | none
@@ -79,6 +81,7 @@ tracker:
   method: troika
   params:
     init_mode: max_peak          # max_peak | ground_truth (debug; marks the run CONTAMINATED)
+    init_spectrum: decomposition # [A20] which spectrum the first window's peak comes from
     init_band_bpm: [40, 200]     # [A10]
     delta_s: 16                  # [PAPER]
     delta_s_wide: 20             # [PAPER]

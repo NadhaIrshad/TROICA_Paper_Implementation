@@ -63,12 +63,22 @@ def dominant_bins(
     lo: int = 0,
     hi: int | None = None,
     rel_threshold: float = 0.5,
+    domain: str = "power",
 ) -> NDArray[np.int64]:
     """Peaks above ``rel_threshold`` times the maximum inside ``[lo, hi]``.
 
     Paper Section III-A: "the dominant frequencies are the ones corresponding to
-    the spectral peaks with amplitude larger than 50 % of the maximum amplitude
-    in a given spectrum", applied per acceleration axis.
+    the spectral peaks with **amplitude** larger than 50 % of the maximum
+    amplitude in a given spectrum", applied per acceleration axis.
+
+    ASSUMPTION A21. ``s`` is a periodogram, so its values are power, not
+    amplitude. Comparing amplitudes means comparing square roots, which is the
+    same as thresholding power at ``rel_threshold ** 2``, so the reading changes
+    the result. ``power`` compares the periodogram values directly and is the
+    default because it measures better on this dataset; ``amplitude`` follows the
+    paper's literal word and keeps roughly four times as many peaks, which
+    deletes heart-rate components along with the motion ones. See
+    docs/assumption_log.md under A21.
     """
     s = np.asarray(s, dtype=np.float64)
     peaks = local_maxima(s, lo, hi)
@@ -79,7 +89,13 @@ def dominant_bins(
     ceiling = float(np.max(s[lo : hi + 1]))
     if ceiling <= 0:
         return np.zeros(0, dtype=np.int64)
-    return peaks[s[peaks] > float(rel_threshold) * ceiling]
+    if domain == "amplitude":  # ASSUMPTION A21
+        cut = float(rel_threshold) ** 2 * ceiling
+    elif domain == "power":
+        cut = float(rel_threshold) * ceiling
+    else:
+        raise ValueError(f"domain must be 'amplitude' or 'power', got {domain!r}")
+    return peaks[s[peaks] > cut]
 
 
 def dominant_bin(
