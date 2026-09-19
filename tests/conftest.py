@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+import troika.plugins  # noqa: F401  (populates the slot registry for every test)
 from troika.config import load_config
 from troika.io import loader
 
