@@ -17,6 +17,7 @@ dist/
 .pytest_cache/
 .ipynb_checkpoints/
 notebooks/*.ipynb
+configs/from_notebook.yaml
 
 # environments
 .venv/

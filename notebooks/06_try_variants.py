@@ -112,11 +112,16 @@ lab.evaluate(runs_variant, cfg).round(2)
 # `promote` writes only what differs from the default, so the file stays short
 # and readable. Then the command line reproduces it:
 #
-#     python experiments/run_all.py --config configs/my_experiment.yaml
+#     python experiments/run_all.py --config configs/from_notebook.yaml
 #
-# To move the plug-in out of the notebook and into the package:
+# This cell writes to `configs/from_notebook.yaml` rather than
+# `configs/my_experiment.yaml`, so that running this notebook does not overwrite
+# your own experiment file. Change the path when you mean to keep the variant.
+#
+# To move the plug-in out of the notebook and into the package, which is also
+# what lets it run in parallel across subjects:
 #
 #     python -m troika.plugins.new decomposition top_k_ssa
 
 # %%
-lab.promote(variant, "configs/my_experiment.yaml")
+lab.promote(variant, "configs/from_notebook.yaml")

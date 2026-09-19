@@ -1,5 +1,0 @@
-decomposition:
-  method: top_k_ssa
-  params:
-    L: 400
-    keep: 40

@@ -383,8 +383,13 @@ def promote(cfg: Config, path: str | Path = "configs/my_experiment.yaml") -> str
     Lab Spec Section 6 step 6: the way a variant found in a notebook becomes the
     configuration that ``experiments/run_all.py`` reproduces.
     """
-    text = cfg.to_yaml(path, diff_only=True)
-    print(f"wrote {path}:\n{text}")
+    target = Path(path)
+    if not target.is_absolute() and not target.parent.is_dir():
+        # A notebook runs from notebooks/, so "configs/..." must still land in
+        # the repository's configs/ rather than creating notebooks/configs/.
+        target = resolve_path(target.parent) / target.name
+    text = cfg.to_yaml(target, diff_only=True)
+    print(f"wrote {target}:\n{text}")
     return text
 
 
