@@ -72,6 +72,8 @@ spectrum_estimator:
     n_iter: 5                    # [PAPER]
     x0: ones                     # [A11] ones | matched_filter
     prune_columns: true          # [PAPER Eq. 12]
+    low_hz: 0.4                  # [PAPER] Eq. 12 pruning band; keep equal to bandpass
+    high_hz: 5.0                 # [PAPER] Eq. 12 pruning band; keep equal to bandpass
 
 tracker:
   method: troika

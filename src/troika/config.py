@@ -450,18 +450,25 @@ def load_config(
         base = _deep_merge(base, user)
         # A user file that switches a slot's method must not inherit the old
         # method's params (Lab Spec Section 3.1).
+        defaults = _read_yaml(default_config_path())
         for slot in registry.SLOTS:
             if not registry.available(slot):
                 continue  # plug-ins not imported yet (bootstrapping)
-            if slot in user and "method" in user[slot]:
-                defaults_for_method = _params_defaults(
-                    registry.params_class(slot, str(user[slot]["method"]))
-                )
-                given = dict(user[slot].get("params") or {})
-                base[slot] = {
-                    "method": str(user[slot]["method"]),
-                    "params": _deep_merge(defaults_for_method, given),
-                }
+            if slot not in user or "method" not in user[slot]:
+                continue
+            method = str(user[slot]["method"])
+            if method == str(defaults[slot]["method"]):
+                # Same method as the default, so default.yaml's params are the
+                # right base and the merge above already did the work. Resetting
+                # here would inject plug-in defaults for keys the file omits and
+                # break the to_yaml round trip.
+                continue
+            defaults_for_method = _params_defaults(registry.params_class(slot, method))
+            given = dict(user[slot].get("params") or {})
+            base[slot] = {
+                "method": method,
+                "params": _deep_merge(defaults_for_method, given),
+            }
 
     cfg = Config(base, source=source)
     if overrides:

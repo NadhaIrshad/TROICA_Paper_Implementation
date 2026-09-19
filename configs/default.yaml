@@ -76,6 +76,8 @@ spectrum_estimator:
     n_iter: 5                   # [PAPER] no need to iterate to convergence
     x0: ones                    # [ASSUMPTION A11] ones | matched_filter
     prune_columns: true         # [PAPER] Eq. 12
+    low_hz: 0.4                 # [PAPER] Eq. 12 pruning band; must match bandpass
+    high_hz: 5.0                # [PAPER] Eq. 12 pruning band; must match bandpass
 
 tracker:
   method: troika
