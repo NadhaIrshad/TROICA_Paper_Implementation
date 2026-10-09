@@ -64,7 +64,12 @@ def predict_trend(
     with warnings.catch_warnings():
         # A short or flat history makes the Vandermonde matrix ill conditioned;
         # the fit is still usable and the paper prescribes no alternative.
-        warnings.simplefilter("ignore", np.exceptions.RankWarning)
+        # NumPy 1.x exposes RankWarning at ``np.RankWarning``; NumPy 2.x
+        # moved it to ``np.exceptions.RankWarning``.
+        rank_warning = getattr(getattr(np, "exceptions", None), "RankWarning", None)
+        if rank_warning is None:  # NumPy 1.x
+            rank_warning = np.RankWarning
+        warnings.simplefilter("ignore", rank_warning)
         coefficients = np.polyfit(x, recent, int(poly_order))
 
     bpm_predict = float(np.polyval(coefficients, float(recent.size)))

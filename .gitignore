@@ -18,6 +18,7 @@ dist/
 .ipynb_checkpoints/
 notebooks/*.ipynb
 configs/from_notebook.yaml
+models/
 
 # environments
 .venv/

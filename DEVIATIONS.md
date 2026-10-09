@@ -156,3 +156,56 @@ assumption sweep behind `docs/assumption_log.md`.
 recording the effect; a script makes that reproducible rather than a note.
 
 **Effect on results.** None.
+
+---
+
+## D9. A learned tracker as an alternative to paper Section III-D
+
+**What.** A second tracker plug-in, `tracker.method: xgboost`, selected by
+`configs/xgboost_tracker.yaml`. The SSA, temporal-difference and SSR stages are
+untouched. Instead of the paper's Cases 1-3 and verification rules, it takes the
+strongest SSR peaks in 40-200 BPM as candidates, scores each with a pre-trained
+XGBoost classifier, and takes the best. A jump guard replaces the paper's
+verification: a top candidate more than `max_jump_bins` from the previous
+estimate is held back until it has won `jump_patience` windows in a row.
+
+The model is trained by `experiments/train_xgboost_tracker.py` on candidate rows
+labelled against the ECG: first from the paper tracker's trajectory, then from
+the learned tracker's own roll-outs. Ground truth is used only to label rows
+after a run; the plug-in never reads it. `xgboost` is an optional dependency
+(`pip install -e '.[ml]'`) and the model file lives in the git-ignored `models/`.
+
+**Why.** An experiment in whether the final stage can be learned, in particular
+whether a search over the whole band recovers from a wrong first window, which
+the paper's local search cannot (subject 10).
+
+**Effect on results.** None on the default configuration, which still uses
+`tracker.method: troika`. The learned tracker is trained on the same 12
+recordings it is otherwise evaluated on, so the only valid number for it is the
+leave-one-subject-out one from `train_xgboost_tracker.py --loso`.
+
+---
+
+## D10. A TinyEfficientNet1D scorer for the learned tracker
+
+**What.** A third tracker plug-in, `tracker.method: efficientnet1d`, selected by
+`configs/efficientnet1d_tracker.yaml`. It is the D9 tracker with the XGBoost
+classifier swapped for a small 1-D EfficientNet (three MBConv blocks with
+squeeze-and-excitation, `src/troika/tracking/efficientnet1d.py`). Candidates,
+first-window initialisation and the jump guard are shared with D9. For each
+candidate the network reads a crop of the SSR spectrum centred on it (32 bins
+either side by default) and takes the 13 D9 features, standardised, as `aux`
+at the head.
+
+The model is trained by `experiments/train_efficientnet_tracker.py` with the
+same protocol as D9: paper-tracker rows first, then the tracker's own
+roll-outs, labelled against the ECG after each run. `torch` is an optional
+dependency (`pip install -e '.[dl]'`) and the model file lives in the
+git-ignored `models/`.
+
+**Why.** An experiment in whether a network that sees the spectrum shape around
+a peak ranks candidates better than trees on hand-made features alone.
+
+**Effect on results.** None on the default configuration. As with D9, the only
+valid number is the leave-one-subject-out one from
+`train_efficientnet_tracker.py --loso`.

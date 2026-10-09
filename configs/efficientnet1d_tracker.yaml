@@ -1,0 +1,18 @@
+# TinyEfficientNet1D replaces only TROIKA's final peak-selection / verification stage.
+# Create models/efficientnet1d_tracker.pt first with experiments/train_efficientnet_tracker.py.
+run:
+  name: efficientnet1d_tracker
+  n_jobs: 1
+
+tracker:
+  method: efficientnet1d
+  params:
+    model_path: models/efficientnet1d_tracker.pt
+    candidate_count: 8
+    low_bpm: 40.0
+    high_bpm: 200.0
+    max_jump_bins: 6      # a top candidate further than this from the previous bin is held back
+    jump_patience: 3      # ... until it has won this many windows in a row; 1 = no guard
+
+evaluation:
+  compare_with_paper: false

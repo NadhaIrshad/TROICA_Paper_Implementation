@@ -1,0 +1,18 @@
+# XGBoost replaces only TROIKA's final peak-selection / verification stage.
+# Create models/xgboost_tracker.json first with experiments/train_xgboost_tracker.py.
+run:
+  name: xgboost_tracker
+  n_jobs: 1
+
+tracker:
+  method: xgboost
+  params:
+    model_path: models/xgboost_tracker.json
+    candidate_count: 8
+    low_bpm: 40.0
+    high_bpm: 200.0
+    max_jump_bins: 6      # a top candidate further than this from the previous bin is held back
+    jump_patience: 3      # ... until it has won this many windows in a row; 1 = no guard
+
+evaluation:
+  compare_with_paper: false
