@@ -1,0 +1,18 @@
+# An MLP on the candidate features replaces only TROIKA's final peak-selection / verification stage.
+# Create models/mlp_tracker.pt first with experiments/train_mlp_tracker.py.
+run:
+  name: mlp_tracker
+  n_jobs: 1
+
+tracker:
+  method: mlp
+  params:
+    model_path: models/mlp_tracker.pt
+    candidate_count: 8
+    low_bpm: 40.0
+    high_bpm: 200.0
+    max_jump_bins: 6      # a top candidate further than this from the previous bin is held back
+    jump_patience: 3      # ... until it has won this many windows in a row; 1 = no guard
+
+evaluation:
+  compare_with_paper: false

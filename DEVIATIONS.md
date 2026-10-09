@@ -209,3 +209,57 @@ a peak ranks candidates better than trees on hand-made features alone.
 **Effect on results.** None on the default configuration. As with D9, the only
 valid number is the leave-one-subject-out one from
 `train_efficientnet_tracker.py --loso`.
+
+---
+
+## D11. An MLP ablation of the D10 scorer
+
+**What.** A fourth tracker plug-in, `tracker.method: mlp`, selected by
+`configs/mlp_tracker.yaml`. It is the D10 tracker with the network reduced to
+its head (`src/troika/tracking/mlp.py`): one hidden layer of 32 units on the 13
+standardised D9 features, with no convolutions and no spectrum crop.
+Candidates, first-window initialisation and the jump guard are shared with D9
+and D10. The D10 code is untouched.
+
+The model is trained by `experiments/train_mlp_tracker.py` with the same
+protocol and defaults as D10. Models go to `models/loso_mlp/` and results to
+`results/mlp_loso_<timestamp>/`.
+
+**Why.** To measure what the convolutions over the spectrum crop add: the MLP
+and the D10 network share the features, the head, the training protocol and the
+jump guard, and differ only in the crop branch.
+
+**Effect on results.** None on the default configuration or on D10's numbers.
+As with D9, the only valid number is the leave-one-subject-out one from
+`train_mlp_tracker.py --loso`.
+
+---
+
+## D12. A hidden-Markov path tracker in place of the jump guard
+
+**What.** A fifth tracker plug-in, `tracker.method: hmm`, selected by
+`configs/hmm_tracker.yaml`. Candidates and first-window initialisation are those
+of D9. The jump guard is replaced by a hidden Markov model whose states are the
+bins of the 40-200 BPM band (`src/troika/tracking/hmm.py`):
+
+* transition: a Gaussian step of `transition_sigma_bins`, plus `jump_prob`
+  spread uniformly over the band;
+* emission: each candidate raises the bins within `emission_sigma_bins` of it
+  in proportion to its score, above `emission_floor`;
+* estimate: the end of the best path so far (one Viterbi step per window), so
+  the tracker stays causal and never revises an earlier window.
+
+`tracker.scorer` chooses what scores the candidates: `spectrum` (their relative
+SSR power, no model) or the D9, D10 or D11 model loaded from `model_path`. The
+HMM has no fitted weights; its four parameters are hand-set config keys.
+`experiments/eval_hmm_tracker.py` evaluates it leave-one-subject-out on the fold
+models the D9-D11 `--loso` runs saved, next to the same models behind the guard.
+
+**Why.** An experiment in whether weighing every window's scores along a path
+tracks better than the guard's fixed rule (hold a far candidate until it has
+won `jump_patience` windows).
+
+**Effect on results.** None on the default configuration. The roll-out models
+of D9-D11 were trained on roll-outs of the guard tracker, not of the HMM. Any
+tuning of the four HMM parameters on the 12 training recordings makes the
+reported number optimistic.

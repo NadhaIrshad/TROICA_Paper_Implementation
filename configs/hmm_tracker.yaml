@@ -1,0 +1,23 @@
+# A hidden Markov model replaces only TROIKA's final peak-selection / verification stage.
+# scorer: spectrum needs no model. For xgboost, efficientnet1d or mlp, set model_path to a
+# file written by that scorer's training script; experiments/eval_hmm_tracker.py does this
+# per held-out subject.
+run:
+  name: hmm_tracker
+  n_jobs: 1
+
+tracker:
+  method: hmm
+  params:
+    scorer: spectrum             # spectrum | xgboost | efficientnet1d | mlp
+    model_path: ""
+    candidate_count: 8
+    low_bpm: 40.0
+    high_bpm: 200.0
+    transition_sigma_bins: 3.0   # typical move between windows; one bin is about 1.8 BPM
+    jump_prob: 0.01              # chance per window of a move to anywhere in the band
+    emission_sigma_bins: 1.0     # how far a candidate's support spreads
+    emission_floor: 0.05         # likelihood of a bin with no candidate nearby
+
+evaluation:
+  compare_with_paper: false
