@@ -33,7 +33,7 @@ signal:
   fs: 125                       # [PAPER] Hz
   window_s: 8                   # [PAPER] T
   step_s: 2                     # [PAPER] S
-  ppg_channel: 1                # [ASSUMPTION A15] 0 = PPG channel 1, 1 = channel 2
+  ppg_channel: 0               # [ASSUMPTION A15] 0 = PPG channel 1, 1 = channel 2
 
 grid:
   n_fft: 4096                   # [PAPER] N, shared FFT / SSR frequency grid

@@ -117,6 +117,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="EEMD + spectral subtraction + MLP + HMM, leave-one-subject-out")
     parser.add_argument("--config", default="configs/eemd_ss.yaml", help="the two new stages; the tracker is set by this script")
     parser.add_argument("--name", default="eemd_ss", help="names the output: models/loso_<name>_mlp/ and results/<name>_mlp_hmm_loso_<timestamp>/")
+    parser.add_argument("--candidate-count", type=int, default=8, help="strongest peaks scored per window, in training and in tracking; 88 covers every peak of the band")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--subjects", nargs="+", type=int, default=None)
     parser.add_argument("--jobs", type=int, default=8, help="subject runs in parallel")
@@ -131,8 +132,9 @@ def main() -> int:
 
     # `stages` keeps the paper tracker of the config; the other two swap the tracker only.
     stages = lab.load_config(args.config).with_overrides([*args.set, "run.n_jobs=1"])
-    mlp_cfg = stages.with_overrides({"tracker.method": "mlp"})
-    hmm_cfg = stages.with_overrides({"tracker.method": "hmm", "tracker.scorer": "mlp"})
+    count = {"tracker.candidate_count": args.candidate_count}
+    mlp_cfg = stages.with_overrides({"tracker.method": "mlp", **count})
+    hmm_cfg = stages.with_overrides({"tracker.method": "hmm", "tracker.scorer": "mlp", **count})
     subjects = lab.load_subjects(stages, args.subjects)
     ids = sorted(subjects)
     model_dir = Path("models") / f"loso_{args.name}_mlp"
