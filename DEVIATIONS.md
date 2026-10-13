@@ -369,3 +369,37 @@ a simulation: a real runtime rounds its fixed-point multipliers and its sigmoid
 table slightly differently. The all-subjects model has no held-out subject, so
 no accuracy figure applies to it; the leave-one-subject-out columns are the
 estimate of how it would do.
+
+---
+
+## D16. Fusing the two PPG channels before the pipeline
+
+**What.** The CCAF attention block of `Channel Fusion/main.py`, on its own
+(`src/troika/preprocessing/ccaf.py`): the network, its loss, its training loop
+with the int8 fine-tuning stage and the preprocessing it expects, copied from
+that file with its global configuration turned into arguments. Nothing else of
+that file's pipeline is used. The block takes both PPG channels as 8-second
+windows at 25 Hz, band-passed and z-scored, and returns one fused window.
+
+The pipeline carries one PPG channel, so the fused windows are computed before
+a run and a band-pass plug-in, `bandpass.method: fused`, puts window `w` of that
+file in place of the PPG row, resampled to 125 Hz. The accelerometer and every
+later stage are untouched. `experiments/train_fused_ssa_ss_mlp_hmm.py` runs the
+fused signal through the stages of `configs/ssa_ss.yaml` and the D11 and D12
+trackers, leave-one-subject-out.
+
+**Why.** PPG channel 2 alone is the weaker signal but is better on subject 10,
+which suggests the two channels complement each other.
+
+**Effect on results.** None on any other configuration. Three points about the
+numbers this gives:
+
+* CCAF is trained against the ECG heart rate, so one is fitted per held-out
+  subject on the other subjects, and the paper-tracker rows and the MLP of each
+  fold are built on that fold's fused signals.
+* The fused PPG reaches the pipeline through a causal 0.4-5 Hz filter at 25 Hz
+  and a resampling step, where PPG channel 1 normally gets a zero-phase filter
+  at 125 Hz. `--fusion ch1` sends channel 1 through the same path, which
+  separates the effect of the path from the effect of the fusion.
+* The block's settings are the defaults of `Channel Fusion/main.py`, untuned
+  here.
