@@ -20,6 +20,7 @@ dist/
 notebooks/*.ipynb
 configs/from_notebook.yaml
 models/
+edge_impulse/
 
 # environments
 .venv/
@@ -31,3 +32,7 @@ env/
 .idea/
 .DS_Store
 Thumbs.db
+
+docs/
+EEMD_Robust_Estimation_of_Pulse_Rate_from_a_Wrist-type_PPG_During_Intensive_Exercise.pdf
+FOCUSS_Robust_real-time_PPG-based_heart_rate_monitoring.pdf

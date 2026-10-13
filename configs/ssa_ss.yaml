@@ -1,0 +1,28 @@
+# Spectral subtraction in place of FOCUSS, with TROIKA's SSA decomposition kept (DEVIATIONS.md D14).
+#
+#   decomposition       SSA + accelerometer matching, as in default.yaml
+#   temporal_diff       second-order difference  ->  none; it belongs to TROIKA's SSR stage,
+#                       and the accelerometer spectrum it would be subtracted from is not differenced
+#   spectrum_estimator  FOCUSS                   ->  spectral subtraction of the accelerometer
+#                       (Nowak et al., EUSIPCO 2015)
+#
+# The band-pass, the decomposition and the tracker are default.yaml's. SSA has already removed
+# the motion components, so the first window's peak still comes from its output (A20).
+run:
+  name: ssa_ss
+
+temporal_diff:
+  method: none
+
+spectrum_estimator:
+  method: spectral_subtraction
+  params:
+    harmonic_weights: [1.0, 0.66, 0.33]   # [NOWAK] Eq. 7; [1, 0, 0] turns the harmonic sum off
+    bpm_prior: false       # [NOWAK] last step; off because the prior was fitted to this dataset's truth
+    prior_loc_bpm: 130.0   # [NOWAK]
+    prior_scale_bpm: 30.0  # [NOWAK]
+    prior_skew: 0.6        # [NOWAK]
+    output_power: false    # [ASSUMPTION] Nowak tracks the amplitude spectrum; true squares it
+
+evaluation:
+  compare_with_paper: false

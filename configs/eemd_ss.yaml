@@ -1,0 +1,46 @@
+# EEMD and spectral subtraction in place of TROIKA's first two stages (DEVIATIONS.md D13, D14).
+#
+#   decomposition       SSA + accelerometer matching  ->  EEMD, modes peaking in 0.5-4 Hz kept
+#                       (Pittara and Orphanidou, EMBC 2018)
+#   temporal_diff       second-order difference       ->  none; it belongs to TROIKA's SSR stage,
+#                       and the accelerometer spectrum it would be subtracted from is not differenced
+#   spectrum_estimator  FOCUSS                        ->  spectral subtraction of the accelerometer
+#                       (Nowak et al., EUSIPCO 2015)
+#
+# The band-pass and the tracker are default.yaml's. Any tracker can follow, e.g.
+#   python experiments/run_all.py --config configs/eemd_ss.yaml --set tracker.method=hmm
+run:
+  name: eemd_ss
+
+decomposition:
+  method: eemd
+  params:
+    low_hz: 0.5            # [EEMD PAPER] modes peaking outside 0.5-4 Hz are dropped
+    high_hz: 4.0           # [EEMD PAPER]
+    ensemble_size: 100     # [ASSUMPTION] Wu and Huang 2009; the EEMD paper gives no settings
+    noise_std: 0.2         # [ASSUMPTION] Wu and Huang 2009, in standard deviations of the window
+    n_sifts: 10            # [ASSUMPTION] Wu and Huang 2009
+    n_imfs: 0              # [ASSUMPTION] 0 = log2(M) - 1, which is 8 for a 1000-sample window
+    seed: 0
+
+temporal_diff:
+  method: none
+
+spectrum_estimator:
+  method: spectral_subtraction
+  params:
+    harmonic_weights: [1.0, 0.66, 0.33]   # [NOWAK] Eq. 7; [1, 0, 0] turns the harmonic sum off
+    bpm_prior: false       # [NOWAK] last step; off because the prior was fitted to this dataset's truth
+    prior_loc_bpm: 130.0   # [NOWAK]
+    prior_scale_bpm: 30.0  # [NOWAK]
+    prior_skew: 0.6        # [NOWAK]
+    output_power: false    # [ASSUMPTION] Nowak tracks the amplitude spectrum; true squares it
+
+tracker:
+  params:
+    # The motion artifact is removed in the spectrum stage here, not in the decomposition,
+    # so the first window's peak must come from the estimator's spectrum (A20).
+    init_spectrum: estimator
+
+evaluation:
+  compare_with_paper: false

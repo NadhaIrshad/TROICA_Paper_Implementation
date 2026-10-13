@@ -263,3 +263,109 @@ won `jump_patience` windows).
 of D9-D11 were trained on roll-outs of the guard tracker, not of the HMM. Any
 tuning of the four HMM parameters on the 12 training recordings makes the
 reported number optimistic.
+
+---
+
+## D13. EEMD as an alternative to the SSA decomposition
+
+**What.** A decomposition plug-in, `decomposition.method: eemd`
+(`src/troika/decomposition/eemd.py`), after M. Pittara and C. Orphanidou,
+"Robust Estimation of Pulse Rate from a Wrist-type PPG During Intensive
+Exercise", EMBC 2018. The window is decomposed by ensemble empirical mode
+decomposition, each mode's Hamming-windowed periodogram is taken, and the modes
+whose peak lies in 0.5-4 Hz are summed. The accelerometer is not used. The SSA
+code is untouched; `configs/eemd_ss.yaml` selects the new stage together with
+D14.
+
+Choices that paper leaves open, all config keys:
+
+* EEMD settings. It states none and cites Wu and Huang (2009), whose values are
+  the defaults: 10 sifting passes, `log2(M) - 1` modes, noise of 0.2 standard
+  deviations, an ensemble of 100.
+* Envelope ends. Each spline is extended to the window edges by the straight
+  line through the two nearest extrema, as in Wu and Huang's code.
+* The noise is redrawn from `seed` for every window, so a run is reproducible.
+
+Not implemented: that paper's own peak selection (the shortest path through
+the first four windows, then the candidate among the five strongest nearest the
+previous estimate). The tracker slot is left to the existing trackers.
+
+**Why.** To compare a decomposition that needs no accelerometer with SSA.
+
+**Effect on results.** None on the default configuration. In this pipeline the
+window is band-passed to 0.4-5 Hz before the decomposition, which that paper
+does not do, so the mode selection has less to remove than in the paper.
+
+---
+
+## D14. Spectral subtraction as an alternative to FOCUSS
+
+**What.** A spectrum-estimator plug-in,
+`spectrum_estimator.method: spectral_subtraction`
+(`src/troika/preprocessing/spectral_subtraction.py`), after E. Nowak et al.,
+"Robust Real-Time PPG-Based Heart Rate Monitoring", EUSIPCO 2015, Section 2.2.
+The PPG amplitude spectrum and the summed amplitude spectra of the three
+accelerometer axes are each divided by their own sum, the second is subtracted
+from the first and negatives are clipped (their Eqs. 5-6); every bin then gains
+0.66 of its second harmonic and 0.33 of its third (Eq. 7). The FOCUSS code is
+untouched.
+
+`configs/eemd_ss.yaml` also sets `temporal_diff.method: none`, because the
+second-order difference belongs to TROIKA's sparse-reconstruction stage and the
+accelerometer spectrum it would be compared with is not differenced, and
+`tracker.params.init_spectrum: estimator`, because here the motion artifact
+leaves in the spectrum stage and not in the decomposition (A20).
+
+Departures from that paper:
+
+* Its last step, multiplying by a skewed-normal prior over BPM, is implemented
+  but off (`bpm_prior: false`): the prior was fitted to the ground truth of
+  these 12 recordings. Its "mean, standard deviation and skewness" are read as
+  the location, scale and shape of `scipy.stats.skewnorm`.
+* Its choice between the two PPG channels by spectrum variance is not
+  implemented; the pipeline carries the one channel of `signal.ppg_channel`.
+* The output is the amplitude-domain spectrum, as that paper tracks; the slot
+  nominally returns power, and `output_power: true` squares it.
+* Its NMF enhancement, particle filter and Viterbi decoder are not implemented.
+
+**Why.** To compare a cheap enhancement with FOCUSS, which that paper names as
+TROIKA's main computational cost.
+
+**Effect on results.** None on the default configuration. The D9-D11 scorers
+were trained on FOCUSS spectra and are not valid on these spectra without
+retraining. Those trackers and D12 have no `init_spectrum` option, so with this
+configuration they start from the pre-subtraction spectrum.
+
+`experiments/train_eemd_ss_mlp_hmm.py` does that retraining for the D11 MLP on
+these spectra (first round only, no roll-outs) and evaluates it
+leave-one-subject-out behind the D9 guard and the D12 HMM. Its models go to
+`models/loso_eemd_ss_mlp/`, apart from those of D11. `--config` and `--name`
+run the same experiment on another pair of stages: `configs/ssa_ss.yaml` keeps
+SSA, and `configs/none_ss.yaml` has no decomposition.
+
+---
+
+## D15. An 8-bit version of the MLP scorer, and its export
+
+**What.** `src/troika/tracking/mlp_int8.py` quantises a D11 MLP after training,
+in the scheme embedded runtimes use: int8 weights with one scale per layer,
+int32 biases, and int8 tensors between the layers whose ranges come from
+calibration rows. `tracker.method: hmm_int8` is the D12 tracker scored by it.
+The feature standardisation stays in floating point outside the model, because
+the 13 features differ in scale by orders of magnitude and an int8 input has
+one scale.
+
+`experiments/export_edge_impulse.py` quantises each fold model of a
+`train_eemd_ss_mlp_hmm.py` run on that fold's training subjects, tracks every
+subject with the float and the 8-bit model, and writes the two Error1 columns
+side by side. It also fits one model to all subjects and exports it as ONNX,
+with the representative features and the scaling constants, for Edge Impulse.
+
+**Why.** To measure what 8-bit arithmetic costs in tracking accuracy before a
+device is involved.
+
+**Effect on results.** None on any other configuration. The 8-bit model here is
+a simulation: a real runtime rounds its fixed-point multipliers and its sigmoid
+table slightly differently. The all-subjects model has no held-out subject, so
+no accuracy figure applies to it; the leave-one-subject-out columns are the
+estimate of how it would do.

@@ -1,0 +1,36 @@
+# Spectral subtraction with no decomposition: the cheapest front end (DEVIATIONS.md D14).
+#
+#   decomposition       SSA + accelerometer matching  ->  none
+#   temporal_diff       second-order difference       ->  none; it belongs to TROIKA's SSR stage,
+#                       and the accelerometer spectrum it would be subtracted from is not differenced
+#   spectrum_estimator  FOCUSS                        ->  spectral subtraction of the accelerometer
+#                       (Nowak et al., EUSIPCO 2015)
+#
+# The band-pass and the tracker are default.yaml's.
+run:
+  name: none_ss
+
+decomposition:
+  method: none
+
+temporal_diff:
+  method: none
+
+spectrum_estimator:
+  method: spectral_subtraction
+  params:
+    harmonic_weights: [1.0, 0.66, 0.33]   # [NOWAK] Eq. 7; [1, 0, 0] turns the harmonic sum off
+    bpm_prior: false       # [NOWAK] last step; off because the prior was fitted to this dataset's truth
+    prior_loc_bpm: 130.0   # [NOWAK]
+    prior_scale_bpm: 30.0  # [NOWAK]
+    prior_skew: 0.6        # [NOWAK]
+    output_power: false    # [ASSUMPTION] Nowak tracks the amplitude spectrum; true squares it
+
+tracker:
+  params:
+    # Nothing removes the motion artifact before the spectrum stage here, so the first
+    # window's peak must come from the estimator's spectrum (A20).
+    init_spectrum: estimator
+
+evaluation:
+  compare_with_paper: false
